@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('docker-creds')  # ← FIXED
+        DOCKERHUB_CREDENTIALS = credentials('docker-creds')
         IMAGE_NAME = "sureshkrishn/trend-app"
     }
 
@@ -10,8 +10,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${IMAGE_NAME}:v\$BUILD_NUMBER ."  # Use BUILD_NUMBER
-                    sh "docker tag ${IMAGE_NAME}:v\$BUILD_NUMBER ${IMAGE_NAME}:latest"
+                    sh "docker build -t ${IMAGE_NAME}:\${BUILD_NUMBER} ."
+                    sh "docker tag ${IMAGE_NAME}:\${BUILD_NUMBER} ${IMAGE_NAME}:latest"
                 }
             }
         }
@@ -30,6 +30,15 @@ pipeline {
                 kubectl rollout status deployment/trend-app --timeout=300s
                 '''
             }
+        }
+    }
+    
+    post {
+        success {
+            echo "Successfully deployed to EKS!"
+        }
+        failure {
+            echo "Pipeline failed."
         }
     }
 }
