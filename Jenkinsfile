@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
+        DOCKERHUB_CREDENTIALS = credentials('docker-creds')  # ← FIXED
         IMAGE_NAME = "sureshkrishn/trend-app"
     }
 
@@ -10,37 +10,26 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${IMAGE_NAME}:v3000 ."
+                    sh "docker build -t ${IMAGE_NAME}:v\$BUILD_NUMBER ."  # Use BUILD_NUMBER
+                    sh "docker tag ${IMAGE_NAME}:v\$BUILD_NUMBER ${IMAGE_NAME}:latest"
                 }
             }
         }
 
         stage('Login and Push') {
             steps {
-                script {
-                    sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
-                    sh "docker push ${IMAGE_NAME}:latest"
-                }
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                sh "docker push ${IMAGE_NAME}:latest"
             }
         }
 
         stage('Deploy to EKS') {
             steps {
-                script {
-                    sh "kubectl apply -f deployment.yaml"
-                    sh "kubectl apply -f service.yaml"
-                    sh "kubectl rollout restart deployment/trend-store"
-                }
+                sh '''
+                kubectl set image deployment/trend-app trend-container=sureshkrishn/trend-app:latest
+                kubectl rollout status deployment/trend-app --timeout=300s
+                '''
             }
-        }
-    }
-
-    post {
-        success {
-            echo "Successfully built, pushed, and deployed ${IMAGE_NAME} to EKS!"
-        }
-        failure {
-            echo "Build failed. Please check the Console Output."
         }
     }
 }
