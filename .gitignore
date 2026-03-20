@@ -1,0 +1,14 @@
+.terraform/
+node_modules/
+.env
+*.log
+.dockerignore
+terraform/
+*.tfstate
+*.tfstate.backup
+.aws/
+.terraform/
+*.tfstate
+*.tfstate.backup
+node_modules/
+.env
